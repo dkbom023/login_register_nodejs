@@ -28,6 +28,13 @@ const ifNotLoggedIn = (req, res, next) => {
   }
   next();
 };
+//for login
+const ifLoggedIn = (req, res, next) => {
+  if (req.session.isLoggedIn) {
+    return res.redirect("/home");
+  }
+  next();
+};
 
 //root
 app.get("/", ifNotLoggedIn, (req, res, next) => {
@@ -39,5 +46,22 @@ app.get("/", ifNotLoggedIn, (req, res, next) => {
       });
     });
 });
+
+// Register Page
+app.post("/register", ifLoggedIn, [
+  body("user_email", "Invalid Email Address!")
+    .isEmail()
+    .custom((value) => {
+      return dbConnection
+        .execute("SELECT email FROM users WHERE email =?", [value])
+        .then(([rows]) => {
+          if (rows.length > 0) {
+            return Promise.reject("This email is already use!");
+          }
+          return true;
+        });
+    }),
+  body("user_name", "Username is empty!").trim().not().isEmpty(),
+]);
 
 app.listen(3000, () => console.log("Server is running..."));
